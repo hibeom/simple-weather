@@ -2,8 +2,12 @@ import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import Loading from "./Loading";
+import Weather from "./Weather";
 
 import * as Location from "expo-location";
+import axios from "axios";
+
+const API_KEY = "0528cc00499cf3fde65dd26bfc414194";
 
 const alertPermissionDenied = () => {
   Alert.alert(
@@ -18,6 +22,14 @@ export default class App extends React.Component {
     isLoading: true,
     latitude: 0,
     longitude: 0,
+    temp: 0, // temp, condition 은 왜 state 에 세팅 안해줌?
+  };
+
+  getWeather = async (latitude, longitude) => {
+    const { data } = await axios.get(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`
+    );
+    return data;
   };
 
   getLocation = async () => {
@@ -32,8 +44,14 @@ export default class App extends React.Component {
       } = await Location.getCurrentPositionAsync();
       console.log(latitude, longitude);
       this.setState({ latitude: latitude, longitude: longitude });
+      const data = await this.getWeather(latitude, longitude);
+      console.log(data);
       // this.state.isLoading = false; // 이건 안되나?
-      this.setState({ isLoading: false });
+      this.setState({
+        isLoading: false,
+        temp: data.main.temp,
+        condition: data.weather[0].main,
+      });
     } catch (e) {
       alertPermissionDenied();
     }
@@ -47,11 +65,7 @@ export default class App extends React.Component {
     return this.state.isLoading ? (
       <Loading />
     ) : (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>
-          latitude : {this.state.latitude},\n longitude : {this.state.longitude}
-        </Text>
-      </View>
+      <Weather temp={this.state.temp} condition={this.state.condition} />
     );
   }
 }
